@@ -1,6 +1,5 @@
 import discord
 from discord.ext import commands, tasks
-from config import TOKEN, ELEVATED_ROLE_ID
 from datetime import datetime, timedelta
 import pytz
 import json
@@ -8,8 +7,19 @@ import os
 import random
 from command_stats import track_unknown_command
 from responses import RESPONSES, HELP_TEXT
-import re  # Add this to your imports at the top
+import re
 from scp_handler import SCPHandler
+
+# Remove the config import and handle environment variables properly
+try:
+    from config import TOKEN, ELEVATED_ROLE_ID
+except ImportError:
+    # If config.py doesn't exist, use environment variables
+    TOKEN = os.getenv('TOKEN')
+    ELEVATED_ROLE_ID = int(os.getenv('ELEVATED_ROLE_ID'))
+
+if not TOKEN or not ELEVATED_ROLE_ID:
+    raise ValueError("Bot token and ELEVATED_ROLE_ID must be provided either through config.py or environment variables")
 
 # Set up intents (required for newer versions of discord.py)
 intents = discord.Intents.default()
@@ -39,10 +49,6 @@ PENDING_FILE = 'pending_elevations.json'
 # Add these constants near the top with other constants
 SCP_CHANNELS = [759136825658310717, 1068738747417514064]
 SCP_PATTERN = re.compile(r'(?i)scp-([0-9]{1,4})\b')  # Matches SCP-XXX format, case insensitive
-
-# Try to get from environment first (for Railway), fall back to config file (for local development)
-TOKEN = os.getenv('TOKEN') or config.TOKEN
-ELEVATED_ROLE_ID = int(os.getenv('ELEVATED_ROLE_ID') or config.ELEVATED_ROLE_ID)
 
 def load_elevated_users():
     if os.path.exists(ELEVATED_USERS_FILE):
