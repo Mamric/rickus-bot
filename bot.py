@@ -196,8 +196,8 @@ async def on_message(message):
 
     # Check for SCP numbers in allowed channels
     if SCPHandler.is_valid_channel(message.channel.id):
-        scp_numbers = SCPHandler.find_scp_numbers(message.content)
-        response = SCPHandler.format_response(scp_numbers)
+        valid_scps, invalid_scps = SCPHandler.find_scp_numbers(message.content)
+        response = SCPHandler.format_response(valid_scps, invalid_scps)
         
         if response:
             await message.channel.send(response)
