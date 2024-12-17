@@ -11,5 +11,7 @@ venv/
 .vscode/
 .idea/
 
-# Bot configuration
-config.py 
+# Bot configuration and data
+config.py
+elevated_users.json
+unknown_commands.json
