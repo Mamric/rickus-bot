@@ -40,6 +40,10 @@ PENDING_FILE = 'pending_elevations.json'
 SCP_CHANNELS = [759136825658310717, 1068738747417514064]
 SCP_PATTERN = re.compile(r'(?i)scp-([0-9]{1,4})\b')  # Matches SCP-XXX format, case insensitive
 
+# Try to get from environment first (for Railway), fall back to config file (for local development)
+TOKEN = os.getenv('TOKEN') or config.TOKEN
+ELEVATED_ROLE_ID = int(os.getenv('ELEVATED_ROLE_ID') or config.ELEVATED_ROLE_ID)
+
 def load_elevated_users():
     if os.path.exists(ELEVATED_USERS_FILE):
         with open(ELEVATED_USERS_FILE, 'r') as f:
