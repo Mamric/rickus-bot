@@ -61,7 +61,7 @@ async def send_notification_chunks(ctx, mentions):
     first_message = (
         "🎉 **CONGRATULATIONS!** 🎉\n\n"
         f"{', '.join(first_chunk)}\n\n"
-        "You have proven your worth by remaining in this server for over 6 months! "
+        "You have proven your worth by remaining in this server for over 3 months! "
         "You have been granted the ELEVATED role, marking you as distinguished members of our community!"
     )
     await ctx.send(first_message)
@@ -94,8 +94,8 @@ async def on_ready():
 
 @bot.event
 async def on_member_join(member):
-    # Schedule role check for this member in 6 months
-    elevation_time = get_utc_now() + timedelta(days=180)
+    # Schedule role check for this member in 3 months (changed from 6)
+    elevation_time = get_utc_now() + timedelta(days=90)  # Changed from 180 to 90
     pending_elevations[member.id] = elevation_time
     print(f"Scheduled elevation for {member.name} at {elevation_time}")
 
@@ -123,11 +123,11 @@ async def checkmembers(ctx):
     
     async for member in ctx.guild.fetch_members():
         if member.joined_at:
-            if current_time - member.joined_at >= timedelta(days=180):
+            if current_time - member.joined_at >= timedelta(days=90):  # Changed from 180 to 90
                 await give_elevated_role(member)
                 count += 1
             else:
-                elevation_time = member.joined_at + timedelta(days=180)
+                elevation_time = member.joined_at + timedelta(days=90)  # Changed from 180 to 90
                 pending_elevations[member.id] = elevation_time
     
     save_elevated_users()  # Save final list to file
