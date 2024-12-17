@@ -33,6 +33,9 @@ recently_elevated = set()
 # File to store elevated users
 ELEVATED_USERS_FILE = 'elevated_users.json'
 
+# Add this constant with your other file constants
+PENDING_FILE = 'pending_elevations.json'
+
 # Add these constants near the top with other constants
 SCP_CHANNELS = [759136825658310717, 1068738747417514064]
 SCP_PATTERN = re.compile(r'(?i)scp-([0-9]{1,4})\b')  # Matches SCP-XXX format, case insensitive
@@ -71,9 +74,12 @@ async def send_notification_chunks(ctx, mentions):
         continuation_message = f"🎉 More ELEVATED members: {', '.join(chunk)}"
         await ctx.send(continuation_message)
 
-@tasks.loop(hours=1)  # Check every hour for members who need elevation
+@tasks.loop(hours=1)
 async def check_pending_elevations():
     current_time = get_utc_now()
+    print(f"[{current_time}] Running hourly elevation check...")
+    
+    elevated_this_check = []  # Track who gets elevated in this check
     
     # Find members who are ready for elevation
     for member_id, elevation_time in pending_elevations.copy().items():
@@ -81,35 +87,81 @@ async def check_pending_elevations():
             for guild in bot.guilds:
                 member = guild.get_member(member_id)
                 if member:
-                    await give_elevated_role(member)
+                    # Give role and track for notification
+                    if await give_elevated_role(member):
+                        elevated_this_check.append(member)
+                        print(f"[{current_time}] Elevated user: {member.name} (ID: {member.id})")
                     del pending_elevations[member_id]
+                    save_pending_elevations()
+    
+    # If we elevated anyone, send notification
+    if elevated_this_check:
+        # Get the announcement channel
+        for guild in bot.guilds:
+            channel = guild.get_channel(1029222292393312297)  # big-chat channel
+            if channel:
+                # Create notification message
+                mentions = [member.mention for member in elevated_this_check]
+                
+                # Split into chunks if needed
+                chunk_size = 20
+                chunks = [mentions[i:i + chunk_size] for i in range(0, len(mentions), chunk_size)]
+                
+                # Send first message with header
+                first_chunk = chunks.pop(0) if chunks else mentions
+                first_message = (
+                    "🎉 **CONGRATULATIONS NEW ELEVATED MEMBERS!** 🎉\n\n"
+                    f"{', '.join(first_chunk)}\n\n"
+                    "You have proven your worth by remaining in this server for over 3 months!\n"
+                    "You have been granted the ELEVATED role! 🎊\n"
+                    f"Head over to <#1029217641077940284> to choose your favorite color for your username! 🎨"
+                )
+                await channel.send(first_message)
+                
+                # Send any remaining chunks
+                for chunk in chunks:
+                    continuation_message = (
+                        "🎉 More newly ELEVATED members: "
+                        f"{', '.join(chunk)}\n"
+                        f"Don't forget to visit <#1029217641077940284> to pick your color! 🎨"
+                    )
+                    await channel.send(continuation_message)
+                
+                print(f"[{current_time}] Sent elevation notifications for {len(elevated_this_check)} users")
+    else:
+        print(f"[{current_time}] No users were eligible for elevation in this check")
 
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
-    # Load any saved elevated users
+    # Load saved data
     global recently_elevated
     recently_elevated = recently_elevated.union(load_elevated_users())
+    load_pending_elevations()  # Load pending elevations
     check_pending_elevations.start()
 
 @bot.event
 async def on_member_join(member):
-    # Schedule role check for this member in 3 months (changed from 6)
-    elevation_time = get_utc_now() + timedelta(days=90)  # Changed from 180 to 90
+    # Schedule role check for this member in 3 months
+    elevation_time = get_utc_now() + timedelta(days=90)
     pending_elevations[member.id] = elevation_time
+    save_pending_elevations()  # Save after adding new member
     print(f"Scheduled elevation for {member.name} at {elevation_time}")
 
 async def give_elevated_role(member):
-    # Check if member already has the role
+    """Give member the ELEVATED role. Returns True if successful."""
     elevated_role = member.guild.get_role(ELEVATED_ROLE_ID)
     if elevated_role and elevated_role not in member.roles:
         try:
             await member.add_roles(elevated_role)
             recently_elevated.add(member.id)  # Add to recently elevated set
             save_elevated_users()  # Save to file after each elevation
-            print(f"Gave ELEVATED role to {member.name}")
+            print(f"[{get_utc_now()}] Successfully gave ELEVATED role to {member.name}")
+            return True
         except discord.Forbidden:
-            print(f"Failed to give ELEVATED role to {member.name} - Missing permissions")
+            print(f"[{get_utc_now()}] Failed to give ELEVATED role to {member.name} - Missing permissions")
+            return False
+    return False
 
 @bot.command()
 @commands.has_permissions(administrator=True)
@@ -383,5 +435,56 @@ async def random_scp(ctx):
         await ctx.send(response)
     else:
         await ctx.send("Sorry, I can only share SCP articles in designated channels! 🤫")
+
+@bot.command()
+@commands.has_permissions(administrator=True)
+async def scanrecent(ctx):
+    """Scan for members who joined within the last 3 months and add them to pending elevations"""
+    await ctx.send("Scanning for recently joined members (last 3 months)...")
+    
+    current_time = get_utc_now()
+    count = 0
+    added_count = 0
+    
+    async for member in ctx.guild.fetch_members():
+        if member.joined_at:
+            days_ago = (current_time - member.joined_at).days
+            if days_ago < 90:  # Less than 3 months
+                count += 1
+                # Check if they're not already in pending elevations
+                if member.id not in pending_elevations:
+                    elevation_time = member.joined_at + timedelta(days=90)
+                    pending_elevations[member.id] = elevation_time
+                    added_count += 1
+                    print(f"Added {member.name} to pending elevations (joined {days_ago} days ago)")
+    
+    save_pending_elevations()  # Save after adding new members
+    
+    await ctx.send(
+        f"Scan complete!\n"
+        f"Found {count} members who joined in the last 3 months.\n"
+        f"Added {added_count} new members to the elevation schedule.\n"
+        "They will receive the ELEVATED role when they reach 3 months."
+    )
+
+def save_pending_elevations():
+    """Save pending elevations to file"""
+    # Convert datetime objects to ISO format strings for JSON serialization
+    pending_dict = {str(k): v.isoformat() for k, v in pending_elevations.items()}
+    with open(PENDING_FILE, 'w') as f:
+        json.dump(pending_dict, f)
+
+def load_pending_elevations():
+    """Load pending elevations from file"""
+    global pending_elevations
+    if os.path.exists(PENDING_FILE):
+        with open(PENDING_FILE, 'r') as f:
+            pending_dict = json.load(f)
+            # Convert back from ISO format strings to datetime objects
+            pending_elevations = {
+                int(k): datetime.fromisoformat(v)
+                for k, v in pending_dict.items()
+            }
+    return {}
 
 bot.run(TOKEN) 

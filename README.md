@@ -5,10 +5,12 @@ A custom Discord bot designed to enhance server interaction with various fun com
 ## Features
 
 ### Role Management
-- **Automatic Role Elevation**: Members receive the ELEVATED role after 6 months
-- **Bulk Role Processing**: Can process all server members at once
-- **Notification System**: Announces newly elevated members
-- **Persistence**: Tracks pending elevations across bot restarts
+- **Automatic Role Elevation**: Members receive the ELEVATED role after 3 months
+- **Persistent Tracking**: Maintains elevation schedule through bot restarts
+- **Automatic Notifications**: Announces newly elevated members in designated channel
+- **Color Selection**: Guides new ELEVATED members to color selection channel
+- **Bulk Processing**: Can process all server members at once
+- **Manual Scanning**: Can scan for recently joined members to ensure none are missed
 
 ### SCP Foundation Integration
 - **Article Linking**: Automatically detects and links SCP articles mentioned in designated channels
@@ -16,6 +18,7 @@ A custom Discord bot designed to enhance server interaction with various fun com
 - **Support for -J Articles**: Handles joke SCPs (e.g., SCP-420-J)
 - **Smart Validation**: Validates SCP numbers and provides helpful feedback for out-of-bounds numbers
 - **Channel Restriction**: Only responds in designated SCP channels
+- **Link Formatting**: Prevents Discord embeds while maintaining clickable links
 
 ### Fun Commands
 - `rickus hello` - Get a friendly greeting
@@ -35,8 +38,19 @@ A custom Discord bot designed to enhance server interaction with various fun com
 
 ### Administrative Commands
 - `rickus checkmembers` - Check and elevate eligible members
-- `rickus notifyelevated` - Notify recently elevated members
+- `rickus scanrecent` - Scan for recently joined members
+- `rickus notifyelevated` - Manually trigger notifications for elevated members
 - `rickus collectelevated` - Collect current elevated members for notification
+
+## Technical Features
+- **Persistent Storage**: Uses JSON files to maintain data across restarts
+  - `elevated_users.json`: Tracks elevated members
+  - `pending_elevations.json`: Maintains elevation schedule
+  - `unknown_commands.json`: Tracks attempted unknown commands
+- **Hourly Checks**: Automatically checks for members due for elevation
+- **Console Logging**: Detailed logging of all elevation activities
+- **Error Handling**: Graceful handling of permissions and invalid commands
+- **Command Tracking**: Tracks unknown command attempts to guide feature development
 
 ## Setup
 
@@ -51,14 +65,17 @@ A custom Discord bot designed to enhance server interaction with various fun com
 git clone https://github.com/yourusername/rickus-bot.git
 cd rickus-bot
 ```
+
 2. Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
+
 3. Create a config.py file from the template:
 ```bash
 cp config.template.py config.py
 ```
+
 4. Update config.py with your:
 - Bot token (from Discord Developer Portal)
 - ELEVATED role ID (from your Discord server)
@@ -73,17 +90,26 @@ cp config.template.py config.py
 ```bash
 python bot.py
 ```
+
 ## File Structure
 ```
 rickus-bot/
-├── bot.py # Main bot code
-├── config.py # Configuration (not in repo)
-├── config.template.py # Configuration template
-├── responses.py # Command responses
-├── scp_handler.py # SCP functionality
-├── command_stats.py # Command tracking
-├── elevated_users.json # Tracks elevated users
-├── requirements.txt # Dependencies
-├── Procfile # Deployment configuration
-└── .gitignore # Git ignore rules
+├── bot.py              # Main bot code
+├── config.py           # Configuration (not in repo)
+├── config.template.py  # Configuration template
+├── responses.py        # Command responses
+├── scp_handler.py      # SCP functionality
+├── command_stats.py    # Command tracking
+├── requirements.txt    # Dependencies
+├── Procfile           # Deployment configuration
+└── .gitignore         # Git ignore rules
 ```
+
+## Support
+For support, feedback, or bug reports:
+- Contact scpWyatt on Discord
+- Submit an issue on GitHub
+- The bot includes a feedback message in SCP-related responses
+
+## License
+[Your chosen license]
