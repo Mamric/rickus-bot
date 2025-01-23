@@ -46,7 +46,9 @@ async def on_message(message):
         return
 
     # Process commands first
-    await bot.process_commands(message)
+    if message.content.lower().startswith('rickus '):
+        await bot.process_commands(message)
+        return  # Don't process keyword responses for commands
 
     # Check for SCP mentions in appropriate channels
     if message.channel.id in SCP_CHANNELS:
@@ -57,7 +59,7 @@ async def on_message(message):
                 scp_number = match.group(1)
                 await scp_handler.handle_scp_mention(message, scp_number)
 
-    # Check for keyword responses
+    # Check for keyword responses (only for non-command messages)
     lower_content = message.content.lower()
     for trigger, response in RESPONSES.items():
         if trigger in lower_content:
@@ -67,7 +69,18 @@ async def on_message(message):
 @bot.command()
 async def help(ctx):
     """Display help information"""
-    await ctx.send(HELP_TEXT)
+    is_admin = ctx.author.guild_permissions.administrator
+    
+    help_text = "**Available Commands:**\n\n"
+    for cmd, desc in HELP_TEXT["regular"]:
+        help_text += f"`rickus {cmd}` - {desc}\n"
+    
+    if is_admin:
+        help_text += "\n**Admin Commands:**\n"
+        for cmd, desc in HELP_TEXT["admin"]:
+            help_text += f"`rickus {cmd}` - {desc}\n"
+    
+    await ctx.send(help_text)
 
 @bot.event
 async def on_command_error(ctx, error):
