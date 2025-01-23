@@ -1,12 +1,16 @@
 import discord
 from discord.ext import commands, tasks
 from datetime import timedelta
+import os
 from .utils import get_utc_now, load_json_file, save_json_file
 
 class RoleManager(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.elevated_role_id = int(discord.utils.get_environment_variable('ELEVATED_ROLE_ID'))
+        elevated_role_id = os.getenv('ELEVATED_ROLE_ID')
+        if not elevated_role_id:
+            raise ValueError("ELEVATED_ROLE_ID must be provided through environment variables")
+        self.elevated_role_id = int(elevated_role_id)
         self.pending_elevations = {}
         self.recently_elevated = set()
         self.ELEVATED_USERS_FILE = 'elevated_users.json'
