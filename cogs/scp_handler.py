@@ -13,7 +13,7 @@ class SCPHandler(commands.Cog):
     async def handle_scp_mention(self, message, scp_number):
         """Handle an SCP number mention"""
         scp_num = int(scp_number)
-        if 1 <= scp_num <= 7999:
+        if 0 <= scp_num <= 7999:
             # Check if the original message contained -ARC or -J
             is_arc = bool(re.search(rf'(?i)scp-{scp_number}-ARC', message.content))
             is_joke = bool(re.search(rf'(?i)scp-{scp_number}-J', message.content))
