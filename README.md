@@ -15,7 +15,7 @@ A custom Discord bot designed to enhance server interaction with various fun com
 ### SCP Foundation Integration
 - **Article Linking**: Automatically detects and links SCP articles mentioned in designated channels
 - **Random SCP**: Get a random SCP article with `rickus random`
-- **Support for -J Articles**: Handles joke SCPs (e.g., SCP-420-J)
+- **Support for Special Articles**: Handles both -J (joke) and -ARC (archived) SCPs
 - **Smart Validation**: Validates SCP numbers and provides helpful feedback for out-of-bounds numbers
 - **Channel Restriction**: Only responds in designated SCP channels
 - **Link Formatting**: Prevents Discord embeds while maintaining clickable links
@@ -51,6 +51,7 @@ A custom Discord bot designed to enhance server interaction with various fun com
 - **Console Logging**: Detailed logging of all elevation activities
 - **Error Handling**: Graceful handling of permissions and invalid commands
 - **Command Tracking**: Tracks unknown command attempts to guide feature development
+- **Modular Design**: Uses Discord.py's cog system for organized, maintainable code
 
 ## Setup
 
@@ -95,10 +96,15 @@ python bot.py
 ```
 rickus-bot/
 ├── bot.py              # Main bot code
+├── cogs/              # Bot components
+│   ├── fun_commands.py   # Entertainment commands
+│   ├── notification_manager.py  # Notification handling
+│   ├── role_manager.py  # Role elevation system
+│   ├── scp_handler.py   # SCP functionality
+│   └── utils.py         # Utility functions
 ├── config.py           # Configuration (not in repo)
 ├── config.template.py  # Configuration template
 ├── responses.py        # Command responses
-├── scp_handler.py      # SCP functionality
 ├── command_stats.py    # Command tracking
 ├── requirements.txt    # Dependencies
 ├── Procfile           # Deployment configuration
