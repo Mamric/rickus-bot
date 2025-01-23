@@ -14,9 +14,9 @@ A custom Discord bot designed to enhance server interaction with various fun com
 
 ### SCP Foundation Integration
 - **Article Linking**: Automatically detects and links SCP articles mentioned in designated channels
-- **Random SCP**: Get a random SCP article with `rickus random`
-- **Support for Special Articles**: Handles both -J (joke) and -ARC (archived) SCPs
-- **Smart Validation**: Validates SCP numbers and provides helpful feedback for out-of-bounds numbers
+- **Random SCP**: Get a random standard SCP article with `rickus random` (excludes -J and -ARC variants)
+- **Support for Special Articles**: Automatically detects and links both -J (joke) and -ARC (archived) variants when mentioned
+- **Smart Validation**: Validates SCP numbers (1-7999) and provides helpful feedback for out-of-bounds numbers
 - **Channel Restriction**: Only responds in designated SCP channels
 - **Link Formatting**: Prevents Discord embeds while maintaining clickable links
 
