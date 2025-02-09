@@ -4,6 +4,7 @@ import os
 import re
 from command_stats import track_unknown_command
 from responses import RESPONSES, HELP_TEXT
+import random
 
 # Set up intents
 intents = discord.Intents.default()
@@ -63,7 +64,11 @@ async def on_message(message):
     lower_content = message.content.lower()
     for trigger, response in RESPONSES.items():
         if trigger in lower_content:
-            await message.channel.send(response)
+            if isinstance(response, list):
+                chosen_response = random.choice(response)
+                await message.channel.send(chosen_response.format(user=message.author.name))
+            else:
+                await message.channel.send(response)
             return
 
 @bot.command()
