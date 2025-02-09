@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands, tasks
-from datetime import timedelta
+from datetime import datetime, timedelta
 import os
 from .utils import get_utc_now, load_json_file, save_json_file
 
@@ -21,13 +21,27 @@ class RoleManager(commands.Cog):
     def load_data(self):
         """Load saved elevation data"""
         self.recently_elevated = set(load_json_file(self.ELEVATED_USERS_FILE, []))
-        self.pending_elevations = load_json_file(self.PENDING_FILE, {})
-        # Convert string keys back to integers
-        self.pending_elevations = {int(k): v for k, v in self.pending_elevations.items()}
+        pending_data = load_json_file(self.PENDING_FILE, {})
+        
+        # Convert string keys back to integers and string dates back to datetime
+        self.pending_elevations = {}
+        for k, v in pending_data.items():
+            try:
+                member_id = int(k)
+                # Handle both ISO format strings and raw timestamps
+                if isinstance(v, str):
+                    elevation_time = datetime.fromisoformat(v)
+                else:
+                    elevation_time = datetime.fromtimestamp(v, tz=get_utc_now().tzinfo)
+                self.pending_elevations[member_id] = elevation_time
+            except (ValueError, TypeError) as e:
+                print(f"Error loading elevation time for member {k}: {e}")
 
     def save_pending_elevations(self):
         """Save pending elevations to file"""
-        save_json_file(self.PENDING_FILE, self.pending_elevations)
+        # Convert datetime objects to ISO format strings for JSON serialization
+        pending_data = {str(k): v.isoformat() for k, v in self.pending_elevations.items()}
+        save_json_file(self.PENDING_FILE, pending_data)
 
     def save_elevated_users(self):
         """Save elevated users to file"""
@@ -51,11 +65,14 @@ class RoleManager(commands.Cog):
     @tasks.loop(hours=24)
     async def check_pending_elevations(self):
         current_time = get_utc_now()
-        print(f"[{current_time}] Running hourly elevation check...")
+        print(f"[{current_time}] Running daily elevation check...")
         
         elevated_this_check = []
         
+        # Make a copy of the items since we'll be modifying the dict
         for member_id, elevation_time in list(self.pending_elevations.items()):
+            print(f"Checking member {member_id}, elevation time: {elevation_time}, current time: {current_time}")
+            
             if current_time >= elevation_time:
                 for guild in self.bot.guilds:
                     member = guild.get_member(member_id)
@@ -66,7 +83,19 @@ class RoleManager(commands.Cog):
                         del self.pending_elevations[member_id]
                         self.save_pending_elevations()
         
-        return elevated_this_check
+        # Send notifications if any members were elevated
+        if elevated_this_check:
+            notification_manager = self.bot.get_cog('NotificationManager')
+            if notification_manager:
+                await notification_manager.send_elevation_announcement(elevated_this_check)
+                print(f"[{current_time}] Sent elevation notifications for {len(elevated_this_check)} users")
+            else:
+                print(f"[{current_time}] Warning: NotificationManager not found, couldn't send notifications")
+
+    @check_pending_elevations.before_loop
+    async def before_check_pending_elevations(self):
+        """Wait until the bot is ready before starting the task"""
+        await self.bot.wait_until_ready()
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
