@@ -84,13 +84,17 @@ class RoleManager(commands.Cog):
                         self.save_pending_elevations()
         
         # Send notifications if any members were elevated
-        if elevated_this_check:
-            notification_manager = self.bot.get_cog('NotificationManager')
-            if notification_manager:
+        notification_manager = self.bot.get_cog('NotificationManager')
+        if notification_manager:
+            if elevated_this_check:
                 await notification_manager.send_elevation_announcement(elevated_this_check)
                 print(f"[{current_time}] Sent elevation notifications for {len(elevated_this_check)} users")
             else:
-                print(f"[{current_time}] Warning: NotificationManager not found, couldn't send notifications")
+                # Send message to the announcement channel that no new members were elevated
+                for guild in self.bot.guilds:
+                    channel = guild.get_channel(notification_manager.announcement_channel_id)
+                    if channel:
+                        await channel.send("📊 Daily elevation check complete - No new members were elevated today.")
 
     @check_pending_elevations.before_loop
     async def before_check_pending_elevations(self):
@@ -113,18 +117,23 @@ class RoleManager(commands.Cog):
         count = 0
         current_time = get_utc_now()
         self.recently_elevated.clear()
+        elevated_role = ctx.guild.get_role(self.elevated_role_id)
+        
+        if not elevated_role:
+            await ctx.send("Could not find ELEVATED role!")
+            return
         
         async for member in ctx.guild.fetch_members():
             if member.joined_at:
-                if current_time - member.joined_at >= timedelta(days=90):
-                    await self.give_elevated_role(member)
-                    count += 1
+                if current_time - member.joined_at >= timedelta(days=90) and elevated_role not in member.roles:
+                    if await self.give_elevated_role(member):
+                        count += 1
                 else:
                     elevation_time = member.joined_at + timedelta(days=90)
                     self.pending_elevations[member.id] = elevation_time
         
         self.save_elevated_users()
-        response = f"Finished checking members. Elevated {count} members and scheduled remaining eligible members."
+        response = f"Finished checking members. Elevated {count} new members and scheduled remaining eligible members."
         if count > 0:
             response += "\nWould you like me to notify the newly elevated members? Use `rickus notifyelevated` to send notifications."
         await ctx.send(response)

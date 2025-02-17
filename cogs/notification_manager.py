@@ -31,8 +31,9 @@ class NotificationManager(commands.Cog):
             first_message = (
                 "🎉 **CONGRATULATIONS!** 🎉\n\n"
                 f"{', '.join(first_chunk)}\n\n"
-                "You have proven your worth by remaining in this server for over 3 months! "
-                "You have been granted the ELEVATED role, marking you as distinguished members of our community!"
+                "You have proven your worth by remaining in this server for over 3 months!\n"
+                "You have been granted the ELEVATED role, marking you as distinguished members of our community! 🎊\n"
+                f"Head over to <#{self.color_role_channel_id}> to choose your favorite color for your username! 🎨"
             )
         
         await ctx.send(first_message)
